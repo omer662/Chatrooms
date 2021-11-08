@@ -11,94 +11,60 @@ namespace Client
     class Client
     {
         private string name;
-        private const int initialPort = 8360;
-        private int portOffset;
-        private Socket clientSocket;
-
-        private object inRoomLock;
-        private Thread ReaderThread;
-        private Thread WriterThread;
+        private TcpClient client;
 
         public Client()
         {
-            Console.WriteLine("Welcome to the chat rooms.");
-            Console.Write("-> ");
+            Console.Write("Name: ");
             this.name = Console.ReadLine().Trim();
-            this.clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.portOffset = 0;
-        }
-
-        private void ConnectTo(int portNum)
-        {
-            if (clientSocket.Connected)
-            {
-                clientSocket.Close();
-            }
-            IPAddress ip = IPAddress.Parse("127.0.0.1");
-            IPEndPoint endPoint = new IPEndPoint(ip, portNum);
-            clientSocket.Connect(endPoint);
         }
 
         public void Run()
         {
             while (true)
             {
-                Console.Write("-> ");
-                string request = Console.ReadLine();
-                byte[] message = new byte[21], uName, rName;
-                int start = 0;
-                if (request.Length > 5 && request.Substring(0, 5).Equals("join ")) { message[0] = 0; start = 5; }
-                else if (request.Length > 7 && request.Substring(0, 7).Equals("create ")) { message[0] = 1; start = 7; }
-                else { return; }
-                string room = request.Substring(start);
-                if (name.Length >= 10) { uName = Encoding.UTF8.GetBytes(name.Substring(0, 10)); } else { uName = Encoding.UTF8.GetBytes(name + new string('\n', 10 - name.Length)); }
-                if (room.Length >= 10) { rName = Encoding.UTF8.GetBytes(room.Substring(0, 10)); } else { rName = Encoding.UTF8.GetBytes(room + new string('\n', 10 - room.Length)); }
+                this.client = new TcpClient();
 
-                Console.WriteLine("Tring to connect to room '" + room + "'");
+                Console.Write("Connect to: ");
+                string rName = Console.ReadLine().Trim();
 
-                uName.CopyTo(message, 1);
-                rName.CopyTo(message, 11);
+                if (rName.Equals("EXIT")) { break; }
 
-                ConnectTo(initialPort);
-                clientSocket.Send(message);
+                byte[] request = new byte[20], nameBytes = new byte[10], roomBytes = new byte[10];
 
-                byte[] response = new byte[4];
-                clientSocket.Receive(response);
-                portOffset = BitConverter.ToInt32(response);
+                Encoding.UTF8.GetBytes(name).CopyTo(request, 0);
+                Encoding.UTF8.GetBytes(rName).CopyTo(request, 10);
 
-                JoinRoom();
+                client.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8360));
+                NetworkStream stream = client.GetStream();
+                stream.Write(request);
+
+                byte[] newPort = new byte[4];
+                stream.Read(newPort);
+
+                stream.Close();
+                client.Close();
+
+                while (true)
+                {
+                    Console.Write("{0}> ", name);
+                    string message = Console.ReadLine().Trim();
+
+                    if(message.Equals("EXIT")) { break; }
+                    if (message.Length > 256) { message = message.Substring(0, 256); }
+                    byte[] fullMessage = new byte[266], messageBytes = Encoding.UTF8.GetBytes(message);
+                    Encoding.UTF8.GetBytes(name).CopyTo(fullMessage, 0);
+                    Array.Copy(messageBytes, 0, fullMessage, 10, messageBytes.Length);
+
+                    client = new TcpClient();
+                    client.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), BitConverter.ToInt32(newPort)));
+                    NetworkStream ns = client.GetStream();
+                    ns.Write(fullMessage, 0, fullMessage.Length);
+                    ns.Close();
+                    client.Close();
+                }
             }
         }
 
-        private byte[] StringToBytes(string str)
-        {
-            byte[] encodedLength = BitConverter.GetBytes(str.Length);
-            byte[] encoded = Encoding.UTF8.GetBytes(str);
-            byte[] bytes = new byte[4 + encoded.Length];
-
-            encodedLength.CopyTo(bytes, 0);
-            encoded.CopyTo(bytes, 4);
-
-            return bytes;
-        }
-
-        private void JoinRoom()
-        {
-            ConnectTo(initialPort + portOffset);
-            ReaderThread = new Thread(ReaderFunction);
-            ReaderThread.Start();
-            WriterThread = new Thread(WriterFunction);
-            WriterThread.Start();
-        }
-
-        static void ReaderFunction()
-        {
-
-        }
-
-        static void WriterFunction()
-        {
-
-        }
     }
 }
