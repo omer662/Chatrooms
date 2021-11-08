@@ -1,6 +1,6 @@
 # Chatrooms
 
-# TODO:
+## TODO:
 1. Test clients on different machines
 2. Give RoomServer a way to save all user names, thus knowing all of the connected users
 3. Add way to tell RoomServer when a user leaves it
