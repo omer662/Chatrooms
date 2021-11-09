@@ -50,7 +50,6 @@ namespace Client
                     Console.Write("{0}> ", name);
                     string message = Console.ReadLine().Trim();
 
-                    if(message.Equals("EXIT")) { break; }
                     if (message.Length > 256) { message = message.Substring(0, 256); }
                     byte[] fullMessage = new byte[266], messageBytes = Encoding.UTF8.GetBytes(message);
                     Encoding.UTF8.GetBytes(name).CopyTo(fullMessage, 0);
@@ -62,6 +61,8 @@ namespace Client
                     ns.Write(fullMessage, 0, fullMessage.Length);
                     ns.Close();
                     client.Close();
+
+                    if (message.Equals("EXIT")) { break; }
                 }
             }
         }

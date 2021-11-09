@@ -55,29 +55,37 @@ namespace Server
                 Console.WriteLine("Waiting for a new connection");
                 TcpClient client = listener.AcceptTcpClient();
 
-                Console.WriteLine("Got new connection from {0}", client.Client.LocalEndPoint);
+                Console.WriteLine("Got new connection from {0}", client.Client.RemoteEndPoint);
                 NetworkStream stream = client.GetStream();
 
                 byte[] request = new byte[20], nameBytes = new byte[10], roomBytes = new byte[10];
                 stream.Read(request, 0, request.Length);
 
-                Array.Copy(request, 0, nameBytes, 0, 10);
+                Array.Copy(request, 0, nameBytes, 0, 10); // Get user name or SERVEREXIT message
                 Array.Copy(request, 10, roomBytes, 0, 10);
 
                 string uName = Encoding.UTF8.GetString(nameBytes).Trim(), rName = Encoding.UTF8.GetString(roomBytes).Trim();
                 for (int i = 0; i < uName.Length; i++) { if ((byte)uName[i] == 0) { uName = uName.Substring(0, i); break; } }
                 for (int i = 0; i < rName.Length; i++) { if ((byte)rName[i] == 0) { rName = rName.Substring(0, i); break; } }
-                Console.WriteLine("User '{0}' requested room '{1}'", uName, rName);
+                Console.WriteLine("Redirected user '{0}' to room '{1}'", uName, rName);
                 (RoomServer requestedRoom, int port, bool startProcess) = GetRoom(rName);
 
+                if (uName.Equals("SERVEREXIT"))
+                {
+                    rooms.Remove(requestedRoom);
+                    Console.WriteLine("Server {0} closed.", rName);
+                    continue;
+                }
                 rooms.Add(requestedRoom);
 
                 stream.Write(BitConverter.GetBytes(port)); 
                 if (!startProcess) { continue; }
-                ProcessStartInfo psi = new ProcessStartInfo("Server.exe");
-                psi.CreateNoWindow = true;
-                psi.UseShellExecute = true;
-                psi.Arguments = requestedRoom.GetName() + " " + port.ToString();
+                ProcessStartInfo psi = new ProcessStartInfo("Server.exe")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = true,
+                    Arguments = requestedRoom.GetName() + " " + port.ToString()
+                };
                 Process.Start(psi);
             }
         }
