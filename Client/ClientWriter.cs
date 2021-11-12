@@ -4,19 +4,27 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Diagnostics;
 
 
 namespace Client
 {
-    class Client
+    class ClientWriter
     {
         private string name;
         private TcpClient client;
 
-        public Client()
+        public ClientWriter()
         {
             Console.Write("Name: ");
             this.name = Console.ReadLine().Trim();
+            ProcessStartInfo psi = new ProcessStartInfo("Client.exe")
+            {
+                CreateNoWindow = true,
+                UseShellExecute = true,
+                Arguments = "1"
+            };
+            Process.Start(psi);
         }
 
         public void Run()
@@ -30,7 +38,7 @@ namespace Client
 
                 if (rName.Equals("EXIT")) { break; }
 
-                byte[] request = new byte[20], nameBytes = new byte[10], roomBytes = new byte[10];
+                byte[] request = new byte[20];
 
                 Encoding.UTF8.GetBytes(name).CopyTo(request, 0);
                 Encoding.UTF8.GetBytes(rName).CopyTo(request, 10);

@@ -6,8 +6,16 @@ namespace Client
     {
         static void Main(string[] args)
         {
-            Client client = new Client();
-            client.Run();
+            if (args.Length != 0)
+            {
+                ClientListener cl = new ClientListener();
+                cl.Run();
+            }
+            else
+            {
+                ClientWriter client = new ClientWriter();
+                client.Run();
+            }
         }
 
 
