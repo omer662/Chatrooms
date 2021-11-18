@@ -88,7 +88,6 @@ namespace Server
                 }
                 if (message.Equals("EXIT"))
                 {
-                    names.Remove(name);
                     int i = names.IndexOf(name);
                     names.Remove(name);
                     clientIps.RemoveAt(i);
